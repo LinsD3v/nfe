@@ -3,20 +3,91 @@ function extrairComprador() {
         .find(el => el.innerText.includes("Dados do comprador"));
 
     if (!cartao) {
-        throw new Error("Não foi possível encontrar o cartão de dados do comprador.");
+        throw new Error("Cartão do comprador não encontrado.");
     }
 
-    const name = cartao
-        .querySelector(".billing-info-card__content span")
-        ?.textContent.trim();
+    const campos = {};
 
-    if (!name) {
-        throw new Error("Não foi possível encontrar o nome do comprador.");
+    const linhas = cartao.querySelectorAll(
+        ".billing-info-card__line"
+    );
+
+    for (const linha of linhas) {
+        const label = linha
+            .querySelector(".billing-info-card__label")
+            ?.textContent.trim();
+
+        const valor = linha
+            .querySelector(".billing-info-card__content span")
+            ?.textContent.trim();
+
+        if (label && valor) {
+            campos[label] = valor;
+        }
     }
 
-    return { name }
-
+    return {
+        name: campos["Nome completo"],
+        cpf: campos["CPF"],
+        address: campos["Endereço"]
+    };
 }
+
+
+function extrairItens() {
+    const produtos = document.querySelectorAll(
+        ".sc-product-resolutions-wrapper .sc-product"
+    );
+
+    if (produtos.length === 0) {
+        throw new Error("Nenhum produto encontrado no pedido.");
+    }
+
+    return [...produtos].map(produto => {
+        const name = produto
+            .querySelector(".sc-title a")
+            ?.textContent.trim();
+
+        const subtitulo = produto
+            .querySelector(".sc-title-subtitle__container")
+            ?.textContent.trim();
+
+        const skuMatch = subtitulo?.match(/\bSKU\s+(\S+)/);
+
+        const precoTexto = produto
+            .querySelector(".sc-price__label")
+            ?.textContent.trim();
+
+        const quantidadeTexto = produto
+            .querySelector(".sc-quantity__value")
+            ?.textContent.trim();
+
+        if (!name || !skuMatch || !precoTexto || !quantidadeTexto) {
+            throw new Error("Não foi possível extrair todos os dados do produto.");
+        }
+
+        const preco = Number(
+            precoTexto
+                .replace(/[^\d,.-]/g, "")
+                .replace(/\./g, "")
+                .replace(",", ".")
+        );
+
+        const quantidadeMatch = quantidadeTexto.match(/\d+/);
+
+        if (!Number.isFinite(preco) || !quantidadeMatch) {
+            throw new Error("Preço ou quantidade inválidos.");
+        }
+
+        return {
+            name,
+            sku: skuMatch[1],
+            quantity: Number(quantidadeMatch[0]),
+            unit_price: preco.toFixed(2)
+        };
+    });
+}
+
 
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -25,7 +96,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     try {
         sendResponse({
             success: true,
-            data: extrairComprador()
+            data: mountPayload()
         });
     } catch (error) {
         sendResponse({
@@ -34,3 +105,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
     }
 });
+
+
+function mountPayload() {
+    const comprador = extrairComprador();
+
+    const payload = {
+        client: {
+            name: comprador.name,
+            cpf: comprador.cpf,
+            adress: {
+                street_name: comprador.address,
+                number: null,
+                street_type: null,
+                cep: null
+            }
+        },
+        items: []
+    };
+
+    return payload;
+}
