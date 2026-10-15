@@ -31,3 +31,5 @@ dist/
 downloads/
 output/
 logs/
+
+nfe_data.db
