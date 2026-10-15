@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 from pydantic.types import Decimal
 
-app = FastAPI(name='Potato commander', version='1.0.0', description='A simple api to command AHK scripts to NFE emission.')
+app = FastAPI(name='Potato commander', version='0.0.1', description='A simple api to command AHK scripts to NFE emission.')
 
 class adress_model(BaseModel):
     street_name: str

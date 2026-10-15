@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Potato Scraper",
+  "version": "0.0.1",
+  "description": "Extrai dados de pedidos do Mercado Livre",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://vendedores.mercadolivre.com.br/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://vendedores.mercadolivre.com.br/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
