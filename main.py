@@ -1,9 +1,16 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from pydantic.types import Decimal
 
-app = FastAPI(name='Potato commander', version='0.0.1', description='A simple api to command AHK scripts to NFE emission.')
+app = FastAPI(title='Potato commander', version='0.0.1', description='A simple api to command AHK scripts to NFE emission.')
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["chrome-extension://dmgnimpjekpjgfhbepngccjdffoaibge"],
+    allow_methods=["POST", "GET"],
+    allow_headers=["Content-Type"],
+)
 
 class client_model(BaseModel):
     name: str
@@ -19,6 +26,7 @@ class item_model(BaseModel):
 
 
 class nfe_data_model(BaseModel):
+    order_id: str
     client: client_model
     items: list[item_model] = Field(min_length=1)
 

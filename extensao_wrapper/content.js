@@ -96,8 +96,18 @@ function extrairItens() {
     });
 }
 
+function extrairIdVenda() {
+    const elemento = [...document.querySelectorAll("p.sc-text")]
+        .find(el => /\bVenda\s*#\s*\d+/.test(el.textContent));
 
+    const match = elemento?.textContent.match(/\bVenda\s*#\s*(\d+)/);
 
+    if (!match) {
+        throw new Error("ID da venda não encontrado.");
+    }
+
+    return match[1];
+}
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action !== "extrairComprador") return;
@@ -117,10 +127,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 
 function mountPayload() {
+    const idVenda = extrairIdVenda();
     const comprador = extrairComprador();
     const itens = extrairItens();
 
     const payload = {
+        order_id: idVenda,
         client: {
             name: comprador.name,
             cpf: comprador.cpf,

@@ -1,0 +1,33 @@
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Ambiente Python
+.env
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Arquivos temporários, logs e backups
+*.tmp
+*.temp
+*.log
+*.bak
+*.swp
+*.swo
+
+# Editores
+.vscode/
+.idea/
+
+# Builds
+build/
+dist/
+
+# Arquivos gerados por automações
+downloads/
+output/
+logs/

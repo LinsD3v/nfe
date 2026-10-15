@@ -8,7 +8,8 @@
     "scripting"
   ],
   "host_permissions": [
-    "https://vendedores.mercadolivre.com.br/*"
+    "https://vendedores.mercadolivre.com.br/*",
+    "http://localhost:8000/*"
   ],
   "content_scripts": [
     {
