@@ -2,6 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from pydantic.types import Decimal
+from repositories.orders import (
+    registrar_pedido,
+    buscar_pedido,
+    receber_pedido,
+)
 
 app = FastAPI(title='Potato commander', version='0.0.1', description='A simple api to command AHK scripts to NFE emission.')
 
@@ -37,5 +42,7 @@ def life():
 
 @app.post('/nfe')
 def nfe(data: nfe_data_model):
-    # Here you can add the logic to handle the NFE data, such as calling an AHK script or processing the data.
-    return {'message': 'NFE data received successfully!', 'data': data.dict()}
+    return receber_pedido(
+        data.order_id, 
+        data.model_dump(mode='json')
+        )

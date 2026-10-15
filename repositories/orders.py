@@ -55,3 +55,21 @@ def atualizar_status(sale_id: str, status: str):
         )
 
         return cursor.rowcount == 1
+
+
+def receber_pedido(sale_id: str, payload: dict) -> dict:
+    inserido = registrar_pedido(sale_id, payload)
+
+    if not inserido:
+        pedido = buscar_pedido(sale_id)
+
+        return {
+            "Accepted": False,
+            "Reason": "duplicate",
+            "pedido": pedido["status"] if pedido else "unknown",
+        }
+
+    return {
+        "Accepted": True, 
+        "Status": "Pending"
+    }
