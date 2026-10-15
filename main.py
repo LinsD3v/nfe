@@ -4,17 +4,11 @@ from pydantic.types import Decimal
 
 app = FastAPI(name='Potato commander', version='0.0.1', description='A simple api to command AHK scripts to NFE emission.')
 
-class adress_model(BaseModel):
-    street_name: str
-    number: str
-    street_type: str
-    cep: str
-    
 
 class client_model(BaseModel):
     name: str
     cpf: str
-    adress: adress_model
+    address: str
 
 
 class item_model(BaseModel):
@@ -33,3 +27,7 @@ class nfe_data_model(BaseModel):
 def life():
     return {'message': 'Life is good!'}
 
+@app.post('/nfe')
+def nfe(data: nfe_data_model):
+    # Here you can add the logic to handle the NFE data, such as calling an AHK script or processing the data.
+    return {'message': 'NFE data received successfully!', 'data': data.dict()}

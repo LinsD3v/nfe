@@ -34,6 +34,7 @@ function extrairComprador() {
 }
 
 
+
 function extrairItens() {
     const produtos = document.querySelectorAll(
         ".sc-product-resolutions-wrapper .sc-product"
@@ -48,11 +49,16 @@ function extrairItens() {
             .querySelector(".sc-title a")
             ?.textContent.trim();
 
-        const subtitulo = produto
-            .querySelector(".sc-title-subtitle__container")
+        // Procura o texto que contém SKU, sem depender
+        // da classe específica do subtítulo.
+        const subtitulo = [...produto.querySelectorAll("div, span")]
+            .find(el =>
+                el.children.length === 0 &&
+                /\bSKU\b/i.test(el.textContent)
+            )
             ?.textContent.trim();
 
-        const skuMatch = subtitulo?.match(/\bSKU\s+(\S+)/);
+        const skuMatch = subtitulo?.match(/\bSKU\s+(\S+)/i);
 
         const precoTexto = produto
             .querySelector(".sc-price__label")
@@ -63,7 +69,9 @@ function extrairItens() {
             ?.textContent.trim();
 
         if (!name || !skuMatch || !precoTexto || !quantidadeTexto) {
-            throw new Error("Não foi possível extrair todos os dados do produto.");
+            throw new Error(
+                `Dados incompletos no produto: ${name ?? "nome não encontrado"}`
+            );
         }
 
         const preco = Number(
@@ -90,6 +98,7 @@ function extrairItens() {
 
 
 
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action !== "extrairComprador") return;
 
@@ -109,19 +118,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 function mountPayload() {
     const comprador = extrairComprador();
+    const itens = extrairItens();
 
     const payload = {
         client: {
             name: comprador.name,
             cpf: comprador.cpf,
-            adress: {
-                street_name: comprador.address,
-                number: null,
-                street_type: null,
-                cep: null
-            }
+            address: comprador.address
         },
-        items: []
+        items: itens
     };
 
     return payload;
