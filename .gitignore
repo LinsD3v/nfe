@@ -25,6 +25,7 @@ __MACOSX/
 !.env.*.example
 .venv/
 venv/
+worker/venv-jab
 env/
 ENV/
 __pycache__/
@@ -89,3 +90,8 @@ logs/
 
 # Executaveis compilados pelo AutoHotkey
 worker/AHK/*.exe
+
+
+# JAB external dependencies
+worker/JAB/accessbridge2_0_2/*
+!worker/JAB/accessbridge2_0_2/readme.md
