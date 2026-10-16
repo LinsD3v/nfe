@@ -1,149 +1,166 @@
-# Potato Commander
+# Potato Commander 🥔
 
-Automação local para capturar dados de pedidos no Mercado Livre, organizar esses dados em uma fila e, como objetivo do projeto, apoiar a emissao de notas fiscais eletronicas (NF-e) por meio de automacao do sistema emissor.
+Automação local para capturar dados de pedidos do Mercado Livre, organizá-los em uma fila e, como objetivo futuro, apoiar a emissão de notas fiscais eletrônicas (NF-e) por meio da automação do sistema emissor.
 
-> **Estado do projeto:** a captura pelo navegador, a API e o armazenamento local ja possuem uma primeira implementacao. A emissao da NF-e ainda e uma etapa planejada: o worker atual apenas busca pedidos pendentes e atualiza seu status para `processing`; a chamada da automacao e a confirmacao do resultado ainda nao existem.
+> **Estado do projeto: beta em desenvolvimento.** A captura pelo navegador, a API e o armazenamento local já têm uma primeira implementação. A emissão da NF-e ainda não foi implementada: atualmente, o worker busca pedidos elegíveis e muda seu status para `processing`, mas ainda não chama a automação do emissor nem confirma o resultado da emissão.
 
 ## Objetivos
 
-- Reduzir a transcricao manual de dados de pedidos.
-- Receber os dados capturados no Mercado Livre por uma extensao do Chrome.
-- Validar e registrar cada pedido localmente, evitando duplicidades.
-- Impedir a emissao automatica em casos que ainda precisam de tratamento, como pedidos com mais de um pacote.
-- Evoluir para um worker que emita a NF-e no sistema utilizado pela operacao e registre o resultado para consulta e auditoria.
+- Reduzir a transcrição manual de dados dos pedidos.
+- Receber dados capturados no Mercado Livre por uma extensão do Chrome.
+- Validar e registrar cada pedido localmente, evitando registros duplicados.
+- Impedir o encaminhamento automático de pedidos que precisam de tratamento, como pedidos com mais de um pacote.
+- Evoluir para um worker que interaja com o sistema emissor e registre o resultado para consulta e auditoria.
 
-O projeto nao substitui a validacao fiscal ou a revisao de dados. A integracao final deve respeitar as regras fiscais aplicaveis, as permissoes de acesso ao Mercado Livre e os procedimentos da empresa.
+O projeto não substitui a validação fiscal nem a revisão dos dados. A integração final deverá respeitar as regras fiscais aplicáveis, as permissões de acesso ao Mercado Livre e os procedimentos da operação.
 
-## Visao do fluxo
+## Visão geral do fluxo
 
 ```text
 Mercado Livre
-		-> Extensao Chrome extrai os dados do pedido
-		-> API FastAPI valida e recebe o payload
-		-> SQLite registra o pedido e define sua elegibilidade
-		-> Worker consulta pedidos pendentes
-		-> [planejado] automacao do emissor, validacao e registro da NF-e
+    └─> Extensão do Chrome extrai os dados do pedido
+         └─> API FastAPI valida e recebe o payload
+              └─> SQLite registra o pedido e define sua elegibilidade
+                   └─> Worker consulta pedidos pendentes
+                        └─> [planejado] automação do emissor, validação e registro da NF-e
 ```
 
-### Implementado hoje
+### Implementado atualmente
 
-1. A extensao identifica o comprador, os itens, o ID da venda e a quantidade de pacotes na pagina de detalhes do pedido.
+1. A extensão identifica o comprador, os itens, o ID da venda e a quantidade de pacotes na página de detalhes do pedido.
 2. O popup envia o payload para `POST /nfe` na API local.
-3. A API valida os campos com Pydantic e encaminha o pedido ao repositorio.
-4. O repositorio grava o pedido no SQLite. O ID da venda e a chave unica, portanto uma segunda tentativa nao cria outro registro.
-5. Pedidos com um pacote ficam como `pending` e podem ser selecionados pelo worker. Pedidos com mais de um pacote ficam como `blocked` e nao entram na fila automatica.
-6. O worker muda os pedidos encontrados de `pending` para `processing`. A automacao de emissao esta pendente.
+3. A API valida os campos com Pydantic e encaminha o pedido ao repositório.
+4. O repositório grava o pedido no SQLite. O ID da venda é a chave única, portanto uma nova tentativa não cria outro registro para o mesmo pedido.
+5. Pedidos com um pacote são registrados como `pending` e podem ser selecionados pelo worker. Pedidos com mais de um pacote são registrados como `blocked` e não entram na fila automática.
+6. O worker muda os pedidos elegíveis encontrados de `pending` para `processing`. A automação de emissão ainda não está conectada.
 
-### Visao de chegada
+### Objetivo futuro
 
-O fluxo futuro deve concluir a emissao no sistema fiscal, guardar o numero ou identificador da NF-e, atualizar o pedido para `completed` ou `error` e preservar uma mensagem de erro que permita investigar falhas. Reprocessamento, consulta de status e operacao da fila tambem devem ser definidos antes de uso produtivo.
+O fluxo deverá executar a emissão no sistema fiscal, guardar o número ou identificador da NF-e, atualizar o pedido para `completed` ou `error` e preservar informações úteis para investigar falhas. O reprocessamento, a consulta de status e a operação da fila também precisam ser definidos antes do uso produtivo.
 
 ## Componentes
 
-| Componente | Responsabilidade | Situacao |
+| Componente | Responsabilidade | Situação |
 | --- | --- | --- |
-| `extensao_wrapper/` | Extrair os dados da pagina e enviar o pedido para a API | Implementacao inicial |
+| `extensao_wrapper/` | Extrair dados da página e enviar o pedido para a API | Implementação inicial |
 | `main.py` | Expor a API HTTP e validar o payload | Implementado |
 | `repositories/orders.py` | Registrar pedidos, consultar a fila e atualizar status | Implementado |
-| `database.py` e `init_db.py` | Conectar e inicializar o SQLite | Implementado |
-| `worker/main.py` | Buscar pedidos elegiveis e iniciar o processamento | Parcial; emissao ainda nao conectada |
-| `worker/automations/` | Concentrar as etapas de automacao do sistema emissor | Sem automacoes implementadas no momento |
-| `worker/AHK/` | Scripts AutoHotkey auxiliares | Estrutura inicial; `open_pdv.ahk` ainda nao define a automacao |
-| `worker/JAB/` e `worker/config_dll.py` | Acesso a aplicacoes Java via Java Access Bridge | Dependente de configuracao local |
+| `database.py` e `init_db.py` | Conectar ao SQLite e inicializar a tabela | Implementado |
+| `worker/main.py` | Buscar pedidos elegíveis e iniciar o processamento | Parcial; a emissão ainda não está conectada |
+| `worker/automations/` | Concentrar futuras etapas de automação do emissor | Ainda sem automações implementadas |
+| `worker/AHK/` | Guardar scripts AutoHotkey auxiliares | Estrutura inicial; `open_pdv.ahk` ainda não implementa o fluxo de emissão |
+| `worker/JAB/` e `worker/config_dll.py` | Configuração para acesso a aplicações Java via Java Access Bridge | Depende da configuração local |
 
 ## Regras atuais dos pedidos
 
-- `order_id` identifica a venda e nao pode se repetir no banco.
-- `package_count` deve ser maior que zero; se omitido, assume `1`.
-- Um pedido com `package_count == 1` e registrado com `status = pending` e `should_emit = true`.
-- Um pedido com mais de um pacote e registrado com `status = blocked` e `should_emit = false`.
-- Uma venda ja registrada e recusada como duplicada; o registro existente nao e substituido.
-- O worker consulta apenas registros com status `pending` e `should_emit = true`.
+- `order_id` identifica a venda e não pode se repetir no banco.
+- `package_count` deve ser maior que zero. Se omitido, assume o valor `1`.
+- Se `package_count == 1`, o pedido é registrado com `status = pending` e `should_emit = true`.
+- Se `package_count > 1`, o pedido é registrado com `status = blocked` e `should_emit = false`.
+- Uma venda já registrada é tratada como duplicada; o registro existente não é substituído.
+- O worker consulta somente registros com `status = pending` e `should_emit = true`.
 
-Os status `completed` e `error` estao previstos no fluxo, mas ainda nao sao atribuidos por uma automacao concluida.
+Os status `completed` e `error` fazem parte do fluxo planejado, mas ainda não são atribuídos por uma automação de emissão concluída.
 
-## Contrato da API
+## API
+
+A API local é construída com FastAPI. Enquanto estiver em execução, a documentação interativa fica disponível em `/docs`.
 
 ### `GET /life`
 
-Verificacao simples de disponibilidade. Retorna:
+Verificação simples de disponibilidade. Retorna:
 
 ```json
-{"message": "Life is good!"}
+{
+  "message": "Life is good!"
+}
 ```
 
 ### `POST /nfe`
 
-Recebe um pedido no seguinte formato:
+Recebe um pedido neste formato:
 
 ```json
 {
-	"order_id": "123456789",
-	"package_count": 1,
-	"client": {
-		"name": "Nome do comprador",
-		"cpf": "00000000000",
-		"address": "Endereco de entrega"
-	},
-	"items": [
-		{
-			"name": "Nome do produto",
-			"sku": "SKU-001",
-			"quantity": 1,
-			"unit_price": "49.90"
-		}
-	]
+  "order_id": "123456789",
+  "package_count": 1,
+  "client": {
+    "name": "Nome do comprador",
+    "cpf": "00000000000",
+    "address": "Endereço de entrega"
+  },
+  "items": [
+    {
+      "name": "Nome do produto",
+      "sku": "SKU-001",
+      "quantity": 1,
+      "unit_price": "49.90"
+    }
+  ]
 }
 ```
 
-Validacoes aplicadas: `order_id`, dados do comprador e campos do item sao obrigatorios; `items` precisa ter ao menos um item; `quantity`, `unit_price` e `package_count` precisam ser maiores que zero. `package_count` e opcional e assume `1`.
+Validações aplicadas:
 
-Pedido novo aceito:
+- `order_id`, os dados do comprador e os campos dos itens são obrigatórios.
+- `items` precisa conter pelo menos um item.
+- `quantity`, `unit_price` e `package_count` precisam ser maiores que zero.
+- `package_count` é opcional e assume `1` quando omitido.
+
+Exemplo de resposta para um pedido novo elegível:
 
 ```json
 {
-	"Accepted": true,
-	"Status": "pending",
-	"ShouldEmit": true,
-	"PackageCount": 1
+  "Accepted": true,
+  "Status": "pending",
+  "ShouldEmit": true,
+  "PackageCount": 1
 }
 ```
 
-Uma venda duplicada retorna `Accepted: false`, `Reason: "duplicate"` e o status do registro existente. Um pedido com varios pacotes e aceito para registro, mas retorna status `blocked` e `ShouldEmit: false`.
+Uma venda duplicada retorna `Accepted: false`, `Reason: "duplicate"` e o status do registro existente. Pedidos com vários pacotes são aceitos para registro, mas retornam `Status: "blocked"` e `ShouldEmit: false`.
 
-A documentacao interativa do FastAPI fica disponivel em `/docs` enquanto a API estiver em execucao.
+## Banco de dados
 
-## Modelo de dados
+O banco SQLite é criado como `nfe_data.db` na raiz do projeto. A tabela `nfe_data` armazena:
 
-O banco e criado como `nfe_data.db` na raiz do projeto. A tabela `nfe_data` armazena:
-
-| Campo | Uso |
+| Campo | Finalidade |
 | --- | --- |
-| `order_id` | Identificador unico da venda |
-| `status` | Situacao do pedido na fila |
+| `order_id` | Identificador único da venda |
+| `status` | Situação do pedido na fila |
 | `payload` | Dados recebidos em JSON |
-| `created_at`, `updated_at` | Datas de criacao e atualizacao |
-| `nfe` | Reservado para o identificador/numero da nota |
-| `error_message` | Reservado para detalhes de falha |
+| `created_at`, `updated_at` | Datas de criação e atualização |
+| `nfe` | Campo reservado para o identificador ou número da nota |
+| `error_message` | Campo reservado para detalhes de falha |
 | `package_count` | Quantidade de pacotes informada |
-| `should_emit` | Indica se o pedido pode seguir para emissao automatica |
+| `should_emit` | Indica se o pedido pode seguir para emissão automática |
 
-O payload inclui CPF e endereco. O banco e local e nao implementa criptografia, controle de acesso, politica de retencao ou exclusao automatica; proteja o computador e os arquivos do projeto de acordo com a sensibilidade desses dados.
+### Dados pessoais
+
+O payload inclui CPF e endereço. O banco é local e, na implementação atual, não oferece criptografia, controle de acesso, política de retenção ou exclusão automática. Proteja o computador e os arquivos do projeto de acordo com a sensibilidade desses dados. Não publique o banco, payloads reais, capturas de tela com dados de clientes ou logs que revelem informações pessoais.
 
 ## Requisitos
 
 - Windows.
-- Python compativel com as dependencias do projeto. A configuracao do Java Access Bridge cita Python 3.10 ou 3.11 para o worker.
-- Google Chrome para carregar a extensao local.
-- Para a futura automacao: sistema emissor instalado e configurado, AutoHotkey v2 quando aplicavel e Java Access Bridge/DLL compativel quando o emissor for uma aplicacao Java.
+- Python compatível com as dependências do projeto. A configuração documentada para o worker usa Python 3.11.
+- Google Chrome para carregar a extensão localmente.
+- Para a futura automação: sistema emissor instalado e configurado, AutoHotkey v2 quando aplicável e Java Access Bridge/DLL compatível caso o emissor seja uma aplicação Java.
 
-A API e o worker possuem arquivos de dependencias separados. O `worker/worker_requirements.txt` contem dependencias de automacao mais amplas do que as usadas pelo worker atual.
+A API e o worker têm arquivos de dependências separados. `worker/worker_requirements.txt` inclui bibliotecas de automação Windows e acesso Java, e possui um conjunto de dependências mais amplo do que o necessário para o worker atual.
 
-## Instalacao e execucao
+### Dependência externa: Java Access Bridge 2.0.2
 
-### 1. Preparar o banco
+Os binários do Java Access Bridge **não são distribuídos neste repositório**. Quando essa dependência for necessária, obtenha-a pela [página oficial do Java Access Bridge 2.0.2 da Oracle](https://www.oracle.com/java/technologies/javase-jab-2-0-2-downloads.html), leia e aceite os termos aplicáveis e coloque os arquivos extraídos no diretório local esperado pelo projeto.
 
-Na raiz do repositorio, crie um ambiente para a API e instale suas dependencias:
+A pasta `worker/JAB/accessbridge2_0_2/` contém instruções, não uma cópia dos binários. A configuração da DLL deve apontar para o caminho real do arquivo `WindowsAccessBridge-64.dll` na máquina utilizada. Consulte também `worker/JAB/accessbridge2_0_2/readme.md`.
+
+## Instalação e execução
+
+Execute os comandos abaixo a partir da raiz do repositório, salvo indicação contrária.
+
+### 1. Preparar o banco e o ambiente da API
+
+Crie um ambiente virtual e instale as dependências da API:
 
 ```powershell
 py -3.11 -m venv .venv
@@ -152,11 +169,11 @@ python -m pip install -r requirements.txt
 python init_db.py
 ```
 
-Se a politica do PowerShell bloquear a ativacao, use o interpretador diretamente em `.venv\Scripts\python.exe` ou ative o ambiente pelo terminal do VS Code.
+Se a política do PowerShell bloquear a ativação, use diretamente o interpretador `.venv\Scripts\python.exe` ou ative o ambiente pelo terminal do VS Code.
 
 ### 2. Iniciar a API
 
-Com o ambiente da API ativo, na raiz do projeto:
+Com o ambiente da API ativo, execute na raiz do projeto:
 
 ```powershell
 python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
@@ -164,70 +181,77 @@ python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 
 Teste `http://127.0.0.1:8000/life` e acesse `http://127.0.0.1:8000/docs` para consultar os endpoints.
 
-### 3. Carregar a extensao
+### 3. Carregar a extensão do Chrome
 
-1. Abra `chrome://extensions` no Chrome e habilite o **Modo do desenvolvedor**.
-2. Escolha **Carregar sem compactacao** e selecione a pasta `extensao_wrapper/`.
-3. Abra uma pagina de detalhes de venda compativel no Mercado Livre e use o popup da extensao para extrair e enviar o pedido.
+1. Abra `chrome://extensions/` no Chrome e habilite o **Modo do desenvolvedor**.
+2. Selecione **Carregar sem compactação** e escolha a pasta `extensao_wrapper/`.
+3. Abra uma página de detalhes de venda compatível no Mercado Livre e use o popup da extensão para extrair e enviar o pedido.
 
-**Ajuste de integracao local:** antes de testar, alinhe a URL usada em `extensao_wrapper/popup.js` com as permissoes de host do `extensao_wrapper/manifest.json` (`localhost` ou `127.0.0.1`). Alem disso, o `main.py` permite CORS para um ID fixo de extensao; configure essa origem para o ID mostrado pelo Chrome em `chrome://extensions`. Sem esses alinhamentos, o navegador pode bloquear a requisicao mesmo com a API no ar.
+**Ajuste da integração local:** alinhe a URL usada em `extensao_wrapper/popup.js` com as permissões de host em `extensao_wrapper/manifest.json` (`localhost` ou `127.0.0.1`). Além disso, `main.py` permite CORS para um ID fixo de extensão; ajuste essa origem para o ID exibido pelo Chrome em `chrome://extensions/`. Sem esses alinhamentos, o navegador poderá bloquear a requisição mesmo com a API em execução.
 
 ### 4. Preparar e executar o worker
 
-O worker usa um ambiente separado porque suas dependencias incluem bibliotecas de automacao Windows e acesso Java:
+O worker usa um ambiente separado porque suas dependências incluem bibliotecas de automação para Windows e acesso Java:
 
 ```powershell
 py -3.11 -m venv worker\venv-jab
 .\worker\venv-jab\Scripts\python.exe -m pip install -r worker\worker_requirements.txt
 ```
 
-Configure em `worker/config_dll.py` o caminho real para `WindowsAccessBridge-64.dll` se o Java Access Bridge for necessario. A configuracao atual aponta para um caminho absoluto de outra pasta/maquina.
+Se o Java Access Bridge for necessário, configure em `worker/config_dll.py` o caminho real para `WindowsAccessBridge-64.dll`. A configuração atual pode apontar para um caminho absoluto de outra máquina; ajuste-a antes de executar.
 
-Para executar a rotina existente, na raiz:
+Para executar a rotina existente, a partir da raiz do repositório:
 
 ```powershell
 .\worker\venv-jab\Scripts\python.exe -m worker.main
 ```
 
-**Importante:** essa rotina ainda nao emite NF-e. No momento, pedidos elegiveis sao marcados como `processing`. O launcher `worker/startup_worker.bat` tambem referencia `worker.startup_worker`; confirme esse modulo antes de usar o launcher, pois o arquivo nao aparece na estrutura atual do projeto.
+> **Importante:** essa rotina ainda não emite NF-e. No estado atual, os pedidos elegíveis encontrados são marcados como `processing`. O arquivo `worker/startup_worker.bat` referencia `worker.startup_worker`; como esse módulo não aparece na estrutura documentada, confirme ou corrija essa referência antes de usar o launcher.
 
-## Configuracao e limites conhecidos
+## Limitações conhecidas
 
-- A API escuta localmente; nao a exponha na rede ou na internet sem autenticacao, autorizacao, protecao de dados e configuracao de CORS apropriadas.
-- O scraper depende dos seletores e textos atuais da pagina do Mercado Livre. Mudancas no site podem interromper a extracao; valide os dados antes de qualquer emissao.
-- A permissao de host da extensao atualmente declara `localhost`, enquanto o popup faz o `fetch` para `127.0.0.1`. As duas configuracoes precisam concordar.
-- A origem CORS da API esta fixa em um ID de extensao. O ID da extensao carregada localmente precisa corresponder ou a configuracao precisa ser atualizada.
-- O worker nao possui, ainda, bloqueio atomico da fila para execucoes concorrentes, retentativas, timeout, verificacao de resultado ou recuperacao de pedidos deixados em `processing`.
-- A automacao fiscal depende do emissor, do leiaute dos dados, dos certificados e das regras da operacao. Nenhuma dessas etapas deve ser considerada concluida apenas pela recepcao do pedido.
+- A API escuta localmente. Não a exponha à rede ou à internet sem autenticação, autorização, proteção de dados e configuração de CORS adequadas.
+- A extração depende dos seletores e textos atuais da página do Mercado Livre. Mudanças no site podem interrompê-la; valide os dados antes de qualquer emissão.
+- A permissão de host da extensão declara atualmente `localhost`, enquanto o popup faz o `fetch` para `127.0.0.1`. As configurações precisam concordar.
+- A origem CORS da API está fixa em um ID de extensão. O ID da extensão carregada localmente precisa corresponder, ou a configuração precisa ser atualizada.
+- O worker ainda não tem bloqueio atômico da fila para execuções concorrentes, retentativas, timeout, verificação do resultado ou recuperação de pedidos deixados em `processing`.
+- A automação fiscal dependerá do emissor, do formato dos dados, dos certificados e das regras da operação. Receber um pedido não significa que a nota tenha sido emitida.
 
-## Proximas etapas sugeridas
+## Próximas etapas sugeridas
 
-1. Tornar a integracao da extensao configuravel e alinhar permissoes, URL da API e CORS.
-2. Validar os dados extraidos e apresentar uma revisao explicita antes de enfileirar pedidos para emissao.
-3. Definir transicoes de status, concorrencia da fila, retentativas e recuperacao apos falha.
-4. Implementar a automacao do emissor em etapas pequenas e verificaveis, com validacao de cada tela/resultado.
-5. Persistir numero/chave da NF-e e erros tecnicos, e permitir consulta do historico por venda.
-6. Adicionar testes para validacao do payload, duplicidade, regra de pacotes, persistencia e processamento do worker.
-7. Definir controles para protecao, acesso, retencao e descarte de CPF e endereco.
+1. Tornar a integração da extensão configurável e alinhar permissões, URL da API e CORS.
+2. Validar os dados extraídos e apresentar uma revisão explícita antes de colocar os pedidos na fila de emissão.
+3. Definir transições de status, concorrência da fila, retentativas e recuperação após falhas.
+4. Implementar a automação do emissor em etapas pequenas e verificáveis, validando cada tela e cada resultado.
+5. Persistir o número ou a chave da NF-e e os erros técnicos, além de permitir consulta do histórico por venda.
+6. Adicionar testes para validação do payload, duplicidade, regra de pacotes, persistência e processamento do worker.
+7. Definir controles para proteção, acesso, retenção e descarte de CPF e endereço.
 
-## Estrutura do repositorio
+## Estrutura do repositório
 
 ```text
 .
-|-- main.py                      # API FastAPI
-|-- database.py                  # Conexao SQLite
-|-- init_db.py                   # Criacao da tabela
-|-- repositories/
-|   `-- orders.py                # Persistencia e regras da fila
-|-- extensao_wrapper/
-|   |-- manifest.json            # Manifesto da extensao Chrome
-|   |-- content.js               # Extracao dos dados da pagina
-|   |-- popup.html
-|   `-- popup.js                  # Envio do payload para a API
-`-- worker/
-		|-- main.py                   # Processamento inicial da fila
-		|-- config_dll.py             # Configuracao Java Access Bridge
-		|-- automations/              # Futuras automacoes do emissor
-		|-- AHK/                      # Scripts AutoHotkey
-		`-- worker_requirements.txt   # Dependencias do worker
+├── main.py                         # API FastAPI
+├── database.py                     # Conexão SQLite
+├── init_db.py                      # Criação da tabela
+├── repositories/
+│   └── orders.py                   # Persistência e regras da fila
+├── extensao_wrapper/
+│   ├── manifest.json               # Manifesto da extensão Chrome
+│   ├── content.js                  # Extração dos dados da página
+│   ├── popup.html
+│   └── popup.js                    # Envio do payload para a API
+└── worker/
+    ├── main.py                     # Processamento inicial da fila
+    ├── config_dll.py               # Configuração do Java Access Bridge
+    ├── automations/                # Futuras automações do emissor
+    ├── AHK/                        # Scripts AutoHotkey auxiliares
+    ├── JAB/
+    │   └── accessbridge2_0_2/
+    │       └── readme.md            # Instruções para obter a dependência
+    └── worker_requirements.txt     # Dependências do worker
 ```
+
+---
+
+**Potato Commander** — beta em desenvolvimento. Contribuições e sugestões são bem-vindas; recursos descritos como planejados ainda não devem ser considerados prontos para uso produtivo.
