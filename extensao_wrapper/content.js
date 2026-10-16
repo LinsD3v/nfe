@@ -96,11 +96,25 @@ function extrairItens() {
     });
 }
 
+function extrairQuantidadePacotes() {
+    const elemento = document.querySelector(
+        "h1.sc-detail-title__text"
+    );
+
+    const match = elemento?.textContent
+        .trim()
+        .match(/^(\d+)\s+pacotes?$/i);
+
+    return match ? Number(match[1]) : 1;
+}
+
+
+
 function extrairIdVenda() {
     const elemento = [...document.querySelectorAll("p.sc-text")]
-        .find(el => /\bVenda\s*#\s*\d+/.test(el.textContent));
+        .find(el => /#\s*\d+/.test(el.textContent.trim()));
 
-    const match = elemento?.textContent.match(/\bVenda\s*#\s*(\d+)/);
+    const match = elemento?.textContent.trim().match(/#\s*(\d+)/);
 
     if (!match) {
         throw new Error("ID da venda não encontrado.");
@@ -108,6 +122,7 @@ function extrairIdVenda() {
 
     return match[1];
 }
+
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action !== "extrairComprador") return;
@@ -130,9 +145,11 @@ function mountPayload() {
     const idVenda = extrairIdVenda();
     const comprador = extrairComprador();
     const itens = extrairItens();
+    const quantidadePacotes = extrairQuantidadePacotes();
 
     const payload = {
         order_id: idVenda,
+        package_count: quantidadePacotes,
         client: {
             name: comprador.name,
             cpf: comprador.cpf,

@@ -32,6 +32,7 @@ class item_model(BaseModel):
 
 class nfe_data_model(BaseModel):
     order_id: str
+    package_count: int = Field(default=1, gt=0)
     client: client_model
     items: list[item_model] = Field(min_length=1)
 

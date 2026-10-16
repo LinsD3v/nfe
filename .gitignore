@@ -1,37 +1,91 @@
 .DS_Store
 Thumbs.db
 Desktop.ini
+._*
+.Spotlight-V100/
+.Trashes/
+__MACOSX/
 
-# Ambiente Python
+# Arquivos temporarios do Windows e editores
+~$*
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+*.old
+*.orig
+*.rej
+*~
+
+# Ambiente e segredos locais
 .env
+.env.*
+!.env.example
+!.env.*.example
 .venv/
 venv/
 env/
+ENV/
 __pycache__/
 *.py[cod]
+*$py.class
 *.egg-info/
+pip-wheel-metadata/
 
-# Arquivos temporários, logs e backups
-*.tmp
-*.temp
-*.log
-*.bak
-*.swp
-*.swo
+# Ferramentas Python, testes e cobertura
+.Python
+.pytest_cache/
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+nosetests.xml
+junit.xml
 
-# Editores
-.vscode/
-.idea/
-
-# Builds
+# Builds e pacotes Python
 build/
 dist/
+site/
+*.egg
+*.whl
+wheels/
 
-# Arquivos gerados por automações
+# Ambientes de desenvolvimento
+.vscode/
+.idea/
+.history/
+.cache/
+.vscode-test/
+
+# Dependencias e logs de ferramentas JavaScript (se houver build local da extensao)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Logs e arquivos temporarios de automacoes
+*.log
+*.log.*
+
+# Saidas geradas por automacoes
 downloads/
 output/
 logs/
 
-
-Banco com dados pessoais
+# Bancos locais e arquivos auxiliares do SQLite
 *.db
+*.sqlite
+*.sqlite3
+*.db-*
+*.sqlite-*
+
+# Executaveis compilados pelo AutoHotkey
+worker/AHK/*.exe

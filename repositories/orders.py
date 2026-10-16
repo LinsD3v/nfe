@@ -3,7 +3,7 @@ import json
 from database import get_connection
 
 
-def registrar_pedido(sale_id: str, payload: dict) -> bool:
+def registrar_pedido(sale_id: str, payload: dict, status: str) -> bool:
     with get_connection() as conn:
         cursor = conn.execute(
             """
@@ -12,16 +12,25 @@ def registrar_pedido(sale_id: str, payload: dict) -> bool:
                 status,
                 payload,
                 created_at,
-                updated_at
+                updated_at,
+                package_count,
+                should_emit
             )
             VALUES (
-                ?, 'pending', ?, 
+                ?, ?, ?,
                 strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
-                strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+                strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                ?, ?
             )
             ON CONFLICT(order_id) DO NOTHING
             """,
-            (sale_id, json.dumps(payload, ensure_ascii=False)),
+            (
+                sale_id,
+                status,
+                json.dumps(payload, ensure_ascii=False),
+                payload.get("package_count", 1),
+                int(payload["should_emit"]),
+            ),
         )
 
         return cursor.rowcount == 1
@@ -41,6 +50,26 @@ def buscar_pedido(sale_id: str):
         pedido["payload"] = json.loads(pedido["payload"])
         return pedido
 
+def buscar_pedidos_por_status(status: str, should_emit: bool):
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM nfe_data
+            WHERE status = ?
+              AND should_emit = ?
+            """,
+            (status, should_emit),
+        ).fetchall()
+
+        pedidos = []
+        for row in rows:
+            pedido = dict(row)
+            pedido["payload"] = json.loads(pedido["payload"])
+            pedidos.append(pedido)
+
+        return pedidos
+
 
 def atualizar_status(sale_id: str, status: str):
     with get_connection() as conn:
@@ -57,8 +86,17 @@ def atualizar_status(sale_id: str, status: str):
         return cursor.rowcount == 1
 
 
+
 def receber_pedido(sale_id: str, payload: dict) -> dict:
-    inserido = registrar_pedido(sale_id, payload)
+    package_count = payload.get("package_count", 1)
+
+    # Mais de um pacote: bloquear emissão automática
+    should_emit = package_count == 1
+    status = "pending" if should_emit else "blocked"
+
+    payload["should_emit"] = should_emit
+
+    inserido = registrar_pedido(sale_id, payload, status)
 
     if not inserido:
         pedido = buscar_pedido(sale_id)
@@ -70,6 +108,8 @@ def receber_pedido(sale_id: str, payload: dict) -> dict:
         }
 
     return {
-        "Accepted": True, 
-        "Status": "Pending"
+        "Accepted": True,
+        "Status": status,
+        "ShouldEmit": should_emit,
+        "PackageCount": package_count,
     }
