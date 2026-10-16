@@ -32,4 +32,6 @@ downloads/
 output/
 logs/
 
-nfe_data.db
+
+Banco com dados pessoais
+*.db
